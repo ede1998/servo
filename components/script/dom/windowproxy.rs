@@ -634,7 +634,8 @@ impl WindowProxy {
     fn set_window(&self, window: &GlobalScope, traps: &ProxyTraps) {
         unsafe {
             debug!("Setting window of {:p}.", self);
-            let handler = Rc::new(WindowProxyHandler::new(traps));
+            let handler = CreateWrapperProxyHandler(traps);
+            assert!(!handler.is_null());
 
             let cx = GlobalScope::get_cx();
             let window_jsobject = window.reflector().get_jsobject();
@@ -654,7 +655,7 @@ impl WindowProxy {
             // that's not what we are doing here. We need to do this just
             // because we want to replace the wrapper's `ProxyTraps`, but we
             // don't want to update its identity.
-            rooted!(in(*cx) let new_js_proxy = handler.new_window_proxy(&cx, window_jsobject));
+            rooted!(in(*cx) let new_js_proxy = NewWindowProxy(*cx, window_jsobject, handler));
             debug!(
                 "Transplanting proxy from {:p} to {:p}.",
                 old_js_proxy.get(),
@@ -669,7 +670,6 @@ impl WindowProxy {
             // Notify the JS engine about the new window proxy binding.
             SetWindowProxy(*cx, window_jsobject, new_js_proxy.handle());
 
-            self.proxy_handler.set(handler);
             // Update the reflector.
             debug!(
                 "Setting reflector of {:p} to {:p}.",
