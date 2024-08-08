@@ -445,12 +445,17 @@ pub struct Runtime {
     rt: RustRuntime,
     pub microtask_queue: Rc<MicrotaskQueue>,
     job_queue: *mut JobQueue,
+    #[no_trace]
+    networking_task_src_ptr : *mut NetworkingTaskSource,
 }
 
 impl Drop for Runtime {
     #[allow(unsafe_code)]
     fn drop(&mut self) {
         unsafe {
+            if !self.networking_task_src_ptr.is_null() {
+                let _ = Box::from_raw(self.networking_task_src_ptr);
+            }
             DeleteJobQueue(self.job_queue);
         }
         THREAD_ACTIVE.with(|t| {
@@ -564,12 +569,14 @@ unsafe fn new_rt_and_cx_with_parent(
         networking_task_src.queue_unconditionally(task).is_ok()
     }
 
+    let mut networking_task_src_ptr =  std::ptr::null_mut();
     if let Some(source) = networking_task_source {
         let networking_task_src = Box::new(source);
+        networking_task_src_ptr = Box::into_raw(networking_task_src);
         InitDispatchToEventLoop(
             cx,
             Some(dispatch_to_event_loop),
-            Box::into_raw(networking_task_src) as *mut c_void,
+            networking_task_src_ptr as *mut c_void,
         );
     }
 
@@ -724,6 +731,7 @@ unsafe fn new_rt_and_cx_with_parent(
         rt: runtime,
         microtask_queue,
         job_queue,
+        networking_task_src_ptr,
     }
 }
 
