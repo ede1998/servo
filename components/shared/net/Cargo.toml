@@ -39,3 +39,6 @@ url = { workspace = true }
 uuid = { workspace = true }
 webrender_api = { workspace = true }
 webrender_traits = { workspace = true }
+
+[dev-dependencies]
+publicsuffix = "2.2.3"

@@ -1,0 +1,5 @@
+127.0.0.1 host.de
+127.0.0.1 sub.host.de
+127.0.0.1 sub.sub.host.de
+127.0.0.1 sub.sub.sub.host.de
+127.0.0.1 sub.sub.sub.sub.host.de
