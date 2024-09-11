@@ -146,3 +146,46 @@ pub fn reg_host(url: &ServoUrl) -> Option<Host> {
         ImmutableOrigin::Opaque(_) => None,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::PUB_DOMAINS;
+
+    #[test]
+    fn test_suffix_pair() {
+        let test_cases = [
+            ("example.com", ("com", "example.com")),
+            ("sub.example.com", ("com", "example.com")),
+            ("sub.sub.example.com", ("com", "example.com")),
+            ("example.com.", ("com.", "example.com.")),
+            ("sub.example.com.", ("com.", "example.com.")),
+            ("sub.sub.example.com", ("com.", "example.com.")),
+            ("bbc.co.uk", ("co.uk", "bbc.co.uk")),
+            ("bbc.co.uk.", ("co.uk.", "bbc.co.uk.")),
+        ];
+
+        for test_case in test_cases {
+            assert_eq!(test_case.1, PUB_DOMAINS.suffix_pair(test_case.0));
+        }
+    }
+
+    #[test]
+    fn test_suffix_pair_invalid_domain() {
+        let test_cases = [
+            (""),
+            ("/////"),
+            ("......."),
+            ("#$%^&*():_!@"),
+            ("https://www.example.com:443/example?example=a&b=3"),
+            ("example.no_tld"),
+            ("com"),
+            ("com."),
+            (".com"),
+            ("hostname"),
+        ];
+
+        for test_case in test_cases {
+            assert_eq!(("", ""), PUB_DOMAINS.suffix_pair(test_case));
+        }
+    }
+}
