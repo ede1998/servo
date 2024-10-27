@@ -15,7 +15,8 @@
 //! those cases are not present.
 
 use std::collections::HashSet;
-use std::iter::FromIterator;
+use std::iter::{FromIterator, Peekable};
+use std::str::Split;
 use std::sync::LazyLock;
 
 use embedder_traits::resources::{self, Resource};
@@ -58,35 +59,43 @@ impl PubDomainRules {
             .filter(|s| !s.starts_with("//"))
             .collect()
     }
+    /// Given a valid domain name returns a tuple of public suffix and registrable suffix
     fn suffix_pair<'a>(&self, domain: &'a str) -> Option<(&'a str, &'a str)> {
-        let url::Host::Domain(host) = url::Host::parse(&domain).ok()? else {
+        if url::Host::parse(&domain).is_err() {
             return None;
-        };
-
-        dbg!(host);
+        }
 
         let domain = domain.trim_start_matches('.');
-        let mut suffix = domain;
-        let mut prev_suffix = domain;
-        for (index, _) in domain.match_indices('.') {
-            let next_suffix = &domain[index + 1..];
-            if self.exceptions.contains(suffix) {
-                return Some((next_suffix, suffix));
-            }
-            if self.wildcards.contains(next_suffix) || self.rules.contains(suffix) {
-                return Some((suffix, prev_suffix));
-            }
-            prev_suffix = suffix;
-            suffix = next_suffix;
+        let splitted = &mut domain.split('.').peekable();
+
+        return self.suffix_pair_rec(splitted.peek().unwrap(), splitted);
+    }
+
+    fn suffix_pair_rec<'a>(
+        &self,
+        prev_suffix: &'a str,
+        domain: &mut Peekable<Split<'a, char>>,
+    ) -> Option<(&'a str, &'a str)> {
+        let suffix = domain.next()?;
+        let next_suffix = domain.peek()?;
+
+        dbg!(prev_suffix);
+        dbg!(suffix);
+        dbg!(next_suffix);
+        if self.exceptions.contains(suffix) {
+            return Some((next_suffix, suffix));
         }
-        Some((suffix, prev_suffix))
+        if self.wildcards.contains(*next_suffix) || self.rules.contains(suffix) {
+            return Some((suffix, prev_suffix));
+        }
+        self.suffix_pair_rec(suffix, domain)
     }
     pub fn public_suffix<'a>(&self, domain: &'a str) -> &'a str {
-        let (public, _) = self.suffix_pair(domain).unwrap_or(("",""));
+        let (public, _) = self.suffix_pair(domain).unwrap_or(("", ""));
         public
     }
     pub fn registrable_suffix<'a>(&self, domain: &'a str) -> &'a str {
-        let (_, registrable) = self.suffix_pair(domain).unwrap_or(("",""));
+        let (_, registrable) = self.suffix_pair(domain).unwrap_or(("", ""));
         registrable
     }
     pub fn is_public_suffix(&self, domain: &str) -> bool {
@@ -97,8 +106,8 @@ impl PubDomainRules {
         match domain.find('.') {
             None => !domain.is_empty(),
             Some(index) => {
-                !self.exceptions.contains(domain) && self.wildcards.contains(&domain[index + 1..]) ||
-                    self.rules.contains(domain)
+                !self.exceptions.contains(domain) && self.wildcards.contains(&domain[index + 1..])
+                    || self.rules.contains(domain)
             },
         }
     }
@@ -110,10 +119,10 @@ impl PubDomainRules {
         match domain.find('.') {
             None => false,
             Some(index) => {
-                self.exceptions.contains(domain) ||
-                    !self.wildcards.contains(&domain[index + 1..]) &&
-                        !self.rules.contains(domain) &&
-                        self.is_public_suffix(&domain[index + 1..])
+                self.exceptions.contains(domain)
+                    || !self.wildcards.contains(&domain[index + 1..])
+                        && !self.rules.contains(domain)
+                        && self.is_public_suffix(&domain[index + 1..])
             },
         }
     }
@@ -171,8 +180,11 @@ mod tests {
         ];
 
         for test_case in test_cases {
+            dbg!(test_case.0);
+            let result = PUB_DOMAINS.suffix_pair(test_case.0).unwrap();
+            dbg!(result);
             // assert_eq!(test_case.1, PUB_DOMAINS.suffix_pair(test_case.0));
-            assert_ne!(None, PUB_DOMAINS.suffix_pair(test_case.0));
+            assert_eq!(test_case.1, result);
         }
     }
 
@@ -194,7 +206,7 @@ mod tests {
         for test_case in test_cases {
             let result = dbg!(PUB_DOMAINS.suffix_pair(test_case));
             // assert!(Some(("", "")) == result || None == result );
-            assert!(None == result );
+            assert!(None == result);
         }
     }
 }
