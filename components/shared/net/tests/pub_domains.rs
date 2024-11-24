@@ -32,6 +32,7 @@ fn test_is_pub_domain_exception() {
 
 #[test]
 fn test_is_pub_domain_not() {
+    assert_eq!(is_pub_domain("asdasd"), false);
     assert_eq!(is_pub_domain(""), false);
     assert_eq!(is_pub_domain("."), false);
     assert_eq!(is_pub_domain("..."), false);
@@ -79,6 +80,7 @@ fn test_is_reg_domain() {
 
 #[test]
 fn test_pub_suffix() {
+    assert_eq!(pub_suffix("asdasd"), "");
     assert_eq!(pub_suffix("city.yokohama.jp"), "yokohama.jp");
     assert_eq!(pub_suffix("com"), "com");
     assert_eq!(pub_suffix("foo.bar.baz.yokohama.jp"), "baz.yokohama.jp");

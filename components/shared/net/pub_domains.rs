@@ -121,6 +121,10 @@ pub fn pub_suffix(domain: &str) -> &str {
     PUB_DOMAINS.public_suffix(domain)
 }
 
+pub fn suffix_pair<'a>(domain: &'a str) -> (&'a str, &'a str) {
+    PUB_DOMAINS.suffix_pair(domain)
+}
+
 pub fn reg_suffix(domain: &str) -> &str {
     PUB_DOMAINS.registrable_suffix(domain)
 }

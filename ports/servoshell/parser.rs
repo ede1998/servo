@@ -5,6 +5,7 @@
 #[cfg(not(any(target_os = "android", target_env = "ohos")))]
 use std::path::{Path, PathBuf};
 
+use net_traits::pub_domains::{is_pub_domain, pub_suffix, reg_suffix, suffix_pair};
 use servo::net_traits::pub_domains::is_reg_domain;
 use servo::servo_config::pref;
 use servo::servo_url::ServoUrl;
@@ -70,9 +71,15 @@ pub fn location_bar_input_to_url(request: &str) -> Option<ServoUrl> {
     ServoUrl::parse(request)
         .ok()
         .or_else(|| {
+            dbg!(request);
+            dbg!(suffix_pair(request));
+            dbg!(pub_suffix(request));
+            dbg!(reg_suffix(request));
+            dbg!(is_reg_domain(request));
+            dbg!(is_pub_domain(request));
             if request.starts_with('/') {
                 ServoUrl::parse(&format!("file://{}", request)).ok()
-            } else if request.contains('/') || is_reg_domain(request) {
+            } else if request.contains('/') || !pub_suffix(request).is_empty() {
                 ServoUrl::parse(&format!("https://{}", request)).ok()
             } else {
                 None
